@@ -6,6 +6,7 @@
 // require my token, bot API, mongoose
 const token = require('./token');
 const taskSchema = require('./model/taskModel');
+let dater = require('./service/dateSetter');
 const telegramBot = require('node-telegram-bot-api');
 const mongoose = require('mongoose');
 
@@ -16,6 +17,13 @@ mongoose.connect('mongodb://localhost/sPlanerBase');
 //create new Bot with token and polling (socket.io analog (google write this ;) ))
 const bot = new telegramBot(token.getToken, {polling: true});
 
+
+// bot.on('message', function (msg, match) {
+//
+// let one = dater.dateSeter(msg.date, msg.date);
+// bot.sendMessage(msg.chat.id, one + ' DATA')
+//
+// });
 
 bot.onText(/\/start/, function (msg, match) {
     bot.sendMessage(msg.chat.id, 'Ну шо ' + msg.chat.username + ' панєслась )');
@@ -37,33 +45,31 @@ bot.onText(/\/help/, function (msg, match) {
 });
 
 bot.onText(/\/save (.+)/, function (msg, match) {
-    // let description = msg.text;
 
     //thank google for this hack
     let fullMsg = match[1];
 
-    let chatId = msg.chat.id;
+    // let chatId = msg.chat.id;
     let description = fullMsg.split('#')[0] ? fullMsg.split('#')[0] : '';
-    let date = fullMsg.split('#')[1] ? fullMsg.split('#')[1].trim() : '';
+    let dateOfTask = fullMsg.split('#')[1] ? fullMsg.split('#')[1].trim() : Date.now().toLocaleString();
 
-    if (description && date) {
-        date = new Date(date);
-        date.setUTCHours(date.getUTCHours() - 2);
+
+    if (description && dateOfTask) {
+        dateOfTask = new Date(dateOfTask);
+        dateOfTask.setUTCHours(dateOfTask.getUTCHours() - 2);
 
         let task = new taskSchema({
-            chatId: chatId,
-            dateOfTask: date,
+            chatId: msg.chat.id,
+            dateOfTask: dateOfTask,
             description: description
         });
         task.save(function (err, taskToSave) {
             if (err) {
-                bot.sendMessage(chatId, 'Якась помилка, краще введи /help.');
+                bot.sendMessage( msg.chat.id, 'Якась помилка, краще введи /help.');
                 console.log(err);
             } else {
 
-                bot.sendMessage(chatId, 'Я все записав, босс');
-                bot.sendMessage(chatId, description + '    опис');
-                bot.sendMessage(chatId, fullMsg.split('#')[1].trim() + '     дата');
+                bot.sendMessage( msg.chat.id, 'Я все записав, босс');
             }
         })
     }
@@ -78,33 +84,33 @@ bot.onText(/\/find/, function (msg, match) {
 
     let interval = setInterval(function () {
         let lteDate = new Date();
-        lteDate.setUTCHours(lteDate.getUTCHours() + 2);
-        console.log(lteDate);
+        // lteDate.setUTCHours(lteDate.getUTCHours() + 2);
+        console.log(lteDate + '   ______LTE');
 
-        let gteDate = new Date();
-        gteDate.setUTCHours(gteDate.getUTCHours() + 2);
-        // gteDate.setUTCMinutes(gteDate.getUTCMinutes() - 5);
-        console.log(gteDate);
+        let gteDate = new Date(lteDate.setUTCMinutes(lteDate.getUTCMinutes() - 3));
+        // gteDate.setUTCMinutes(gteDate.getUTCMinutes() - 2);
+        console.log(gteDate + '   ______GTE');
 
        let query = taskSchema.find({
             checked: false,
             dateOfTask: {
-                // $gt: gteDate
+                // $gte: gteDate
                 // ,
-                $lt: lteDate
+                $lte: lteDate
             }
         }, function (err, docs) {
             if (err) {
                 console.log(err)
             } else {
-                for (let i = 0; i < docs.length; i++) {
+                for (let i = 0; i < 1; i++) {
 
-                    console.log(docs[i]);
+                    // console.log(docs[i]);
                     docs[i].checked = true;
                     docs[i].save();
-                    bot.sendMessage(docs[i].chatId, 'Хазяїн. Нагадую про ' + docs[i].description);
-                    console.log(docs[i].description);
-                    console.log(docs[i].data);
+                    bot.sendMessage(docs[i].chatId, 'Хазяїн. Нагадую про \n' + docs[i].description);
+
+                    console.log(docs[i].dateOfTask);
+                    console.log('_______________________________________');
                 }
             }
         });
