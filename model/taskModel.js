@@ -1,3 +1,5 @@
+//This file must be called if user will want to save something
+
 let mongoose = require('mongoose');
 let timeZone = require('mongoose-timezone');
 
@@ -11,7 +13,10 @@ let task = new Schema({
         required: true
     },
     dateOfTask: Date,
-    description: String,
+    description: {
+        type: String,
+        text: true
+    },
     checked: {
         type: Boolean,
         default: false
